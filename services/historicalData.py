@@ -5,19 +5,19 @@ import pytz
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from config import appconfig
 
+# mt5.initialize()
+# if not mt5.initialize():
+#  print('Beta Tumhare Mt5 Initialize nhai hua ', mt5.last_error())
 
-mt5.initialize()
-if not mt5.initialize():
- print('Beta Tumhare Mt5 Initialize nhai hua ', mt5.last_error())
+# account = 182507753
+# password = "Vishalgarna@1"
+# server = "Exness-MT5Trial6"
 
-account = 182507753
-password = "Vishalgarna@1"
-server = "Exness-MT5Trial6"
-
-if not mt5.login(login=account, password=password, server=server):
- print('Ye Kya Kardiy credential Wrong de diya ', mt5.last_error())
- quit()
+# if not mt5.login(login=account, password=password, server=server):
+#  print('Ye Kya Kardiy credential Wrong de diya ', mt5.last_error())
+#  quit()
 
 Alltimframes = {
     "1m" : mt5.TIMEFRAME_M1,

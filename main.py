@@ -15,14 +15,18 @@ def home():
 
 @app.route('/vishal', methods=['POST'])
 def placinReqeustOrder():
-        
         orderDetails = request.get_json()
-        if placedOrder(orderDetails):
-             return jsonify({
-                  "message" : "success"
-             }),200      
-        else : 
-             return jsonify({"error during place order"}), 500
+        try:
+
+               if placedOrder(orderDetails):
+                    return jsonify({
+                         "message" : "success"
+                    }),200      
+               else : 
+                    return jsonify({"error during place order"}), 500
+        finally :
+         return jsonify({"error during place order"}), 500
+          
 
 
 if __name__ == '__main__':
