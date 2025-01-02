@@ -1,3 +1,10 @@
+import os , sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__) , '..')))
+
+from services.indicatorsFunction import checkkCoressOverMacd
+from services.historicalData import getHistoricaldata
+
+
 
 
 class Condition:
@@ -18,19 +25,19 @@ from services.placeOrderServices import placedOrder
 
 # Indicator functions
 def calculate_sma(historical_data, time_period):
-    closing_prices = historical_data['close']
+    closing_prices = historical_data['last']
     return talib.SMA(closing_prices, timeperiod=time_period)
 
 def calculate_ema(historical_data, time_period):
-    closing_prices = historical_data['close']
+    closing_prices = historical_data['last']
     return talib.EMA(closing_prices, timeperiod=time_period)
 
 def calculate_rsi(historical_data, time_period):
-    closing_prices = historical_data['close']
+    closing_prices = historical_data['last']
     return talib.RSI(closing_prices, timeperiod=time_period)
 
 def calculate_macd(historical_data):
-    closing_prices = historical_data['close']
+    closing_prices = historical_data['last']
     macd, macd_signal, _ = talib.MACD(closing_prices)
     return macd, macd_signal
 
@@ -42,10 +49,9 @@ def calculate_indicator(name, historical_data, parameters=None):
         return calculate_ema(historical_data, parameters['time period'])
     elif name == 'RSI':
         return calculate_rsi(historical_data, parameters['time period'])
-    elif name == 'MACD':
-        return calculate_macd(historical_data)
     else:
-        raise ValueError(f"Unknown indicator: {name}")
+        return
+        
 
 # Condition evaluation
 def evaluate_condition(name, values):
@@ -77,31 +83,25 @@ class Condition:
 
     def evaluate(self, values):
         return evaluate_condition(self.name, values)
+    
 
-# class Action:
-#     def __init__(self, name):
-#         self.name = name
 
-#     def execute(self, data, conditions_met):
-#         if conditions_met:
-#             if self.name == 'Buy':
-#                 return {'action': 'Buy', 'data': data}
-#             elif self.name == 'Sell':
-#                 return {'action': 'Sell', 'data': data}
-#             else:
-#                 raise ValueError(f"Unknown action: {self.name}")
-#         return None
-
-# Strategy evaluation function
 def evaluate_strategy(historical_data, strategy):
     indicator_values = {}
     trades = []
     conditions = []
     logical_ops = []
+    condition_results = []
+
+    entryCondtion = strategy["entryCondtion"]
 
     # Calculate all indicators first
-    for component in strategy:
+    for component in entryCondtion:
         if component['type'] == 'indicator':
+            indicator = component['name']
+            if indicator == "MACD":
+                check = checkkCoressOverMacd(strategies=strategy)
+                condition_results.append(check)
             value = calculate_indicator(component['name'], historical_data, component['parameters'])
             indicator_key = f"{component['name']}_{component['parameters'].get('time period', '')}"
             if value is not None:
@@ -115,18 +115,17 @@ def evaluate_strategy(historical_data, strategy):
 
     # Store conditions and logical operators
     i = 0
-    while i < len(strategy):
-        component = strategy[i]
+    while i < len(entryCondtion):
+        component = entryCondtion[i]
         if component['type'] == 'condition':
-            prev_indicator_key = f"{strategy[i-1]['name']}_{strategy[i-1]['parameters'].get('time period', '')}"
-            next_indicator_key = f"{strategy[i+1]['name']}_{strategy[i+1]['parameters'].get('time period', '')}"
+            prev_indicator_key = f"{entryCondtion[i-1]['name']}_{entryCondtion[i-1]['parameters'].get('time period', '')}"
+            next_indicator_key = f"{entryCondtion[i+1]['name']}_{entryCondtion[i+1]['parameters'].get('time period', '')}"
             conditions.append((component['name'], indicator_values[prev_indicator_key], indicator_values[next_indicator_key]))
         elif component['type'] == 'logicalOperator':
             logical_ops.append(component['name'])
         i += 1
 
     # Evaluate all conditions
-    condition_results = []
     for cond in conditions:
         condition = Condition(cond[0])
         values = [cond[1], cond[2]]
@@ -143,84 +142,120 @@ def evaluate_strategy(historical_data, strategy):
     if logical_ops:
         conditions_met = condition_results[0]
         for j, logical_op in enumerate(logical_ops):
-            logical_operator = LogicalOperator(logical_op)
-            conditions_met = logical_operator.evaluate([conditions_met, condition_results[j+1]])
+            # Check if j+1 is within bounds of condition_results
+            if j + 1 < len(condition_results):
+                logical_operator = LogicalOperator(logical_op)
+                conditions_met = logical_operator.evaluate([conditions_met, condition_results[j+1]])
+            else:
+                print(f"Skipping logical operator {logical_op} due to insufficient condition results.")  # Debug print
+                break
     else:
         conditions_met = condition_results[0]
 
-    print(conditions_met)  # Debug print
+    print(conditions_met)
 
-    # Execute actions based on the conditions
-    if conditions_met:
-       print("Conditions Met:", conditions_met)
-       orderDetails = strategy["orderDetails"]
-       result = placedOrder(orderDetails= orderDetails)
-       if result:
-         print('order placess suceefully')
-        
 
-    return 
+
+# class Action:
+#     def __init__(self, name):
+#         self.name = name
+
+#     def execute(self, data, conditions_met):
+#         if conditions_met:
+#             if self.name == 'Buy':
+#                 return {'action': 'Buy', 'data': data}
+#             elif self.name == 'Sell':
+#                 return {'action': 'Sell', 'data': data}
+#             else:
+#                 raise ValueError(f"Unknown action: {self.name}")
+#         return None
+
+# Strategy evaluation function
+# def evaluate_strategy(historical_data, strategy):
+#     indicator_values = {}
+#     trades = []
+#     conditions = []
+#     logical_ops = []
+#     condition_results = []
+
+#     # Calculate all indicators first
+#     for component in strategy:
+#         if component['type'] == 'indicator':
+#             indicator = component['type'] == 'indicator'
+#             if(indicator == "MACD"):
+#                 check = checkkCoressOverMacd(strategies=strategy)
+#                 condition_results.append(check)
+#             value = calculate_indicator(component['name'], historical_data, component['parameters'])
+#             indicator_key = f"{component['name']}_{component['parameters'].get('time period', '')}"
+#             if value is not None:
+#                 if isinstance(value, tuple):  # Handle multiple values (e.g., MACD)
+#                     indicator_values[f"{indicator_key}_value"] = value[0].iloc[-1]
+#                     indicator_values[f"{indicator_key}_signal"] = value[1].iloc[-1]
+#                 else:
+#                     indicator_values[indicator_key] = value.iloc[-1]
+
+#     print(indicator_values)  # Debug print to see indicator values
+
+#     # Store conditions and logical operators
+#     i = 0
+#     while i < len(strategy):
+#         component = strategy[i]
+#         if component['type'] == 'condition':
+#             prev_indicator_key = f"{strategy[i-1]['name']}_{strategy[i-1]['parameters'].get('time period', '')}"
+#             next_indicator_key = f"{strategy[i+1]['name']}_{strategy[i+1]['parameters'].get('time period', '')}"
+#             conditions.append((component['name'], indicator_values[prev_indicator_key], indicator_values[next_indicator_key]))
+#         elif component['type'] == 'logicalOperator':
+#             logical_ops.append(component['name'])
+#         i += 1
+
+#     # Evaluate all conditions
+    
+#     for cond in conditions:
+#         condition = Condition(cond[0])
+#         values = [cond[1], cond[2]]
+#         if not any(pd.isna(values)):
+#             result = condition.evaluate(values)
+#             condition_results.append(result)
+#         else:
+#             print(f"Skipping Condition due to NaN Values: {values}")  # Debug print
+#             condition_results.append(False)
+
+#     print("Individual Condition Results:", condition_results)  # Debug print
+
+#     # Combine conditions using logical operators
+#     if logical_ops:
+#         conditions_met = condition_results[0]
+#         for j, logical_op in enumerate(logical_ops):
+#             logical_operator = LogicalOperator(logical_op)
+#             conditions_met = logical_operator.evaluate([conditions_met, condition_results[j+1]])
+#     else:
+#         conditions_met = condition_results[0]
+
+#     print(conditions_met)  # Debug print
+
+#     # Execute actions based on the conditions
 
 # Mock function for fetching historical data
-def fetch_historical_data(symbol):
-    return pd.DataFrame([
-        {"close": 100}, {"close": 105}, {"close": 110}, {"close": 115},
-        {"close": 120}, {"close": 125}, {"close": 130}, {"close": 135},
-        {"close": 140}, {"close": 145}, {"close": 150}, {"close": 155},
-        {"close": 160}, {"close": 165}, {"close": 170}, {"close": 175},
-        {"close": 180}, {"close": 185}, {"close": 190}, {"close": 195},
-        {"close": 200}, {"close": 205}, {"close": 210}, {"close": 215},
-        {"close": 220}, {"close": 225}, {"close": 230}, {"close": 235},
-        {"close": 240}, {"close": 245}, {"close": 250}
-    ])
+
 
 # Define the strategy
 # Define the strategy
-strategy = [
-    {
-        "type": "indicator",
-        "name": "SMA",
-        "parameters": {"time period": 20}
+strategy ={
+    "timeframe" : "1m",
+
+    "orderDetails" : {
+        "symbol" : "USDJPYm",
+        "type" : "BUY"
     },
-    {
-        "type": "condition",
-        "name": "isGreaterThan"
-    },
-    {
-        "type": "indicator",
-        "name": "SMA",
-        "parameters": {"time period": 5}
-    },
-    {
-        "type": "logicalOperator",
-        "name": "OR"
-    },
-    {
-        "type": "indicator",
-        "name": "SMA",
-        "parameters": {"time period": 25}
-    },
-    {
-        "type": "condition",
-        "name": "isGreaterThan"
-    },
+"entryCondtion" :[
     {
         "type": "indicator",
         "name": "SMA",
         "parameters": {"time period": 10}
     },
     {
-        "type": "logicalOperator",
-        "name": "OR"
-    },
-        {
-        "type": "indicator",
-        "name": "SMA",
-        "parameters": {"time period": 20}
-    },
-    {
         "type": "condition",
-        "name": "isLessThan"
+        "name": "isGreaterThan"
     },
     {
         "type": "indicator",
@@ -228,16 +263,25 @@ strategy = [
         "parameters": {"time period": 5}
     },
     {
-        "type": "action",
-        "name": "Buy"
-    }
-]
+        "type": "logicalOperator",
+        "name": "AND"
+    },
+    {
+        "type": "indicator",
+        "name": "MACD",
+        "parameters": {"time period": 25}
+    },
+  
+   ]
 
+}
 # Fetch historical data
-historical_data = fetch_historical_data("symbol")
-
-# Evaluate the strategy on historical data
-results = evaluate_strategy(historical_data, strategy)
+historical_data = getHistoricaldata(symbol="USDJPYm" , timeframe= "1m" , totalnoperiod=1000)
+data = pd.DataFrame(historical_data)
+print(data)
+# Evalu
+# ate the strategy on historical data
+results = evaluate_strategy(data, strategy)
 print("Final Results:", results)
 
 

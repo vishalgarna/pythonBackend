@@ -54,7 +54,7 @@ def placedOrder(orderDetails):
     order_request = {
         'action': mt5.TRADE_ACTION_DEAL,
         'symbol': symbol,
-        'volume': 0.1,  # Ensure volume is float
+        'volume': 0.01,  # Ensure volume is float
         'type': mt5.ORDER_TYPE_SELL if orderDetails["type"] == "SELL" else mt5.ORDER_TYPE_BUY,
         'price': symbol_open_price,
         # 'sl': take_sl,
@@ -77,7 +77,7 @@ def placedOrder(orderDetails):
 
 
 
-orderDetails = { "symbol": "DXYm", "type": "BUY", "sl": 30,"tp": 50  } # 50 pips } 
+# orderDetails = { "symbol": "DXYm", "type": "BUY", "sl": 30,"tp": 50  } # 50 pips } 
 
-result = placedOrder(orderDetails) 
-print(result)
+# result = placedOrder(orderDetails) 
+# print(result)
