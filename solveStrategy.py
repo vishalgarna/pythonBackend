@@ -1,186 +1,243 @@
+import os, sys
 import pandas as pd
 import talib
 
-class Condition:
-    def __init__(self, name):
-        self.name = name
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from demo import evaluate_strategy
+from services.indicatorsFunction import checkkCoressOverMacd
+from services.historicalData import getHistoricaldata
+from datetime import datetime
+from openpyxl import load_workbook
 
-    def evaluate(self, values):
-        if self.name == 'isGreaterThan':
-            return values[0] > values[1]
-        elif self.name == 'isLessThan':
-            return values[0] < values[1]
-        else:
-            raise ValueError(f"Unknown condition: {self.name}")
 
-class LogicalOperator:
-    def __init__(self, name):
-        self.name = name
+def caculate_pnl_value (symbol , entry_price , close_price , type ):
 
-    def evaluate(self, conditions):
-        if self.name == 'AND':
-            return all(conditions)
-        elif self.name == 'OR':
-            return any(conditions)
-        else:
-            raise ValueError(f"Unknown logical operator: {self.name}")
+    if type == "SELL":
+        if "JPY" in symbol:
+            price = entry_price - close_price
+            return round( (price * 0.063478 ) * 100)
+        
+        elif "DXY" in symbol:
+            price = entry_price - close_price
+            return round( (price * 0.1000 ) * 100)
 
-def calculate_sma(historical_data, time_period):
-    closing_prices = historical_data['last']
-    return talib.SMA(closing_prices, timeperiod=time_period)
+        secondprice = entry_price - close_price  
+        # print (secondprice)
+     
+        return round((secondprice * 0.1000) * 10000)
+    elif type == "BUY":
+        if "JPY" in symbol:
+            price = close_price - entry_price  
+            return round( (price * 0.063478 ) * 100)
+        
+        elif "DXY" in symbol:
+            price = close_price - entry_price  
+            return round( (price * 0.1000 ) * 100)
 
-def calculate_ema(historical_data, time_period):
-    closing_prices = historical_data['last']
-    return talib.EMA(closing_prices, timeperiod=time_period)
+        secondprice = close_price - entry_price    
+        # print (secondprice)
+     
+        return round((secondprice * 0.1000) * 10000)
 
-def calculate_rsi(historical_data, time_period):
-    closing_prices = historical_data['last']
-    return talib.RSI(closing_prices, timeperiod=time_period)
 
-def calculate_macd(historical_data):
-    closing_prices = historical_data['last']
-    macd, macd_signal, _ = talib.MACD(closing_prices)
-    return macd, macd_signal
+    
 
-def calculate_indicator(name, historical_data, parameters=None):
-    if name == 'SMA':
-        return pd.Series(calculate_sma(historical_data, parameters['time period']), index=historical_data.index)
-    elif name == 'EMA':
-        return pd.Series(calculate_ema(historical_data, parameters['time period']), index=historical_data.index)
-    elif name == 'RSI':
-        return pd.Series(calculate_rsi(historical_data, parameters['time period']), index=historical_data.index)
-    elif name == 'MACD':
-        macd, macd_signal = calculate_macd(historical_data)
-        return (pd.Series(macd, index=historical_data.index), pd.Series(macd_signal, index=historical_data.index))
+
+def calculate_SL_TP(close_price, symbol, trade_type ):
+    if "JPY" in symbol:
+        if trade_type == "BUY":
+            sl = close_price - 0.600
+            tp = close_price + 1.00
+        elif trade_type == "SELL":
+            sl = close_price + 0.600
+            tp = close_price - 1.00
     else:
-        raise ValueError(f"Unknown indicator: {name}")
+        if trade_type == "BUY":
+            sl = close_price - 0.00600
+            tp = close_price + 0.01500
+        elif trade_type == "SELL":
+            sl = close_price + 0.00600
+            tp = close_price - 0.01000
+        else:
+            raise ValueError("Invalid trade type")
 
-def generate_indicator_key(component, count):
-    parameters_str = '_'.join([f"{key}_{value}" for key, value in sorted(component['parameters'].items())])
-    return f"{component['name']}_{parameters_str}_{count}"
+    return {"sl": sl, "tp": tp}
 
-def evaluate_strategy(historical_data, strategy):
-    indicator_values = {}
-    indicator_keys = {}
-    indicator_counter = {}
+
+def fetch_historical_data(symbol, timeframe, totalnoperiod=10000):
+    data = getHistoricaldata(symbol=symbol, timeframe=timeframe, totalnoperiod=totalnoperiod)
+    df = pd.DataFrame(data)
+    
+    df['high'] = df[['bid', 'ask', 'last']].max(axis=1)
+    df['low'] = df[['bid', 'ask', 'last']].min(axis=1)
+    
+    df['open'] = df['last'].iloc[0]
+    df['close'] = df['last'].iloc[-1]
+    
+    return df
+
+def evaluate_trade(historical_data, strategy):
+    return evaluate_strategy(historical_data=historical_data, strategy=strategy)
+
+def backtest_results(strategy):
     trades = []
-    conditions = []
-    logical_ops = []
+    position = None
+    order_details = strategy["orderDetails"]
+    timeframe = strategy["timeframe"]
+    symbol = order_details["symbol"]
+    sl_hit = 0
+    tp_hit = 0
+    strategycount = []
+    lot_size = 0.01
+    initalamount = 30
+    after_trade = 30
+    # position["after_trade"] = 30tradet_
 
-    for component in strategy:
-        if component['type'] == 'indicator':
-            value = calculate_indicator(component['name'], historical_data, component['parameters'])
-            if component['name'] not in indicator_counter:
-                indicator_counter[component['name']] = 0
-            indicator_key_base = generate_indicator_key(component, indicator_counter[component['name']])
-            
-            # Debug print to show generated key
-            print(f"Generated Key for Indicator: {indicator_key_base}")
-            
-            if component['name'] not in indicator_keys:
-                indicator_keys[component['name']] = []
-            indicator_keys[component['name']].append(indicator_key_base)
-            
-            indicator_counter[component['name']] += 1
 
-            if value is not None:
-                if isinstance(value, tuple):
-                    indicator_values[f"{indicator_key_base}_value"] = value[0].iloc[-1]
-                    indicator_values[f"{indicator_key_base}_signal"] = value[1].iloc[-1]
-                else:
-                    indicator_values[indicator_key_base] = value.iloc[-1]
 
-    print("Indicator Values:", indicator_values)  # Debug print to show all indicator values
+    historical_data = fetch_historical_data(symbol, timeframe)
 
-    i = 0
-    while i < len(strategy):
-        component = strategy[i]
-        if component['type'] == 'condition':
-            prev_indicator_key = indicator_keys[strategy[i-1]['name']][-1]
-            next_indicator_key = indicator_keys[strategy[i+1]['name']][-1]
-            
-            # Debug print to show keys used in condition
-            print(f"Condition Keys: {prev_indicator_key}, {next_indicator_key}")
+    for i in range(len(historical_data)):
+        if(after_trade <= 0):
+            break
+        data = historical_data.iloc[:i + 1]
+        result = evaluate_trade(historical_data=data, strategy=strategy)
 
-            conditions.append((component['name'], indicator_values[prev_indicator_key], indicator_values[next_indicator_key]))
-        elif component['type'] == 'logicalOperator':
-            logical_ops.append(component['name'])
-        i += 1
+        if result:
+            strategycount.append(result)
 
-    condition_results = []
-    for cond in conditions:
-        condition = Condition(cond[0])
-        values = [cond[1], cond[2]]
-        if not any(pd.isna(values)):
-            result = condition.evaluate(values)
-            condition_results.append(result)
-        else:
-            condition_results.append(False)
+            if not position:
+                entry_price = historical_data["last"].iloc[i]
+                time = datetime.fromtimestamp(historical_data["time"].iloc[i]).strftime("%Y-%m-%d %H-%M-%S")
+                sl_tp = calculate_SL_TP(close_price=entry_price, symbol=symbol, trade_type=order_details["type"])
+                position = {
+                    "type": order_details["type"],
+                    "entry_price": entry_price,
+                    "entry_time": time,
+                    "sl": sl_tp["sl"],
+                    "tp": sl_tp["tp"],
+                    "status": "open",
+                    "pnl" : 0
+                }
+                # trades.append(position)
+            else:
+                if position["type"] == "BUY":
+                    if historical_data["last"].iloc[i] <= position["sl"]:
+                        loss = caculate_pnl_value(symbol=symbol , entry_price= position["entry_price"] , close_price=position["sl"] , type= "BUY")
+                        position["exit_price"] = position["sl"]
+                        position["status"] = "sl_hit"
+                        position["pnl"] = loss
+                        position["exit_time"] = datetime.fromtimestamp(historical_data["time"].iloc[i]).strftime("%Y-%m-%d %H-%M-%S")
+                        sl_hit += 1
+                        trades.append(position)
+                        after_trade += loss
+                        position = None
+                    elif historical_data["last"].iloc[i] >= position["tp"]:
+                        profit = caculate_pnl_value(symbol=symbol , entry_price= position["entry_price"] , close_price=position["tp"] ,type= "BUY")
+                        position["exit_price"] = position["tp"]
+                        position["pnl"] = profit
+                        position["status"] = "tp_hit"
+                        position["exit_time"] = datetime.fromtimestamp(historical_data["time"].iloc[i]).strftime("%Y-%m-%d %H-%M-%S")
+                        tp_hit += 1
+                        trades.append(position)
+                        after_trade += profit
+                        position = None
+                elif position["type"] == "SELL":
+                    if historical_data['last'].iloc[i] >= position["sl"]:
+                        loss = caculate_pnl_value(symbol=symbol , entry_price= position["entry_price"] , close_price=position["sl"] , type= "SELL")
+                        position["exit_price"] = position["sl"]
+                        position["pnl"] = loss
+                        position["status"] = "sl_hit"
+                        position["exit_time"] = datetime.fromtimestamp(historical_data["time"].iloc[i]).strftime("%Y-%m-%d %H-%M-%S")
+                        sl_hit += 1
+                        trades.append(position)
+                        after_trade += loss
+                        position = None
+                    elif historical_data['last'].iloc[i] <= position["tp"]:
+                        profit = caculate_pnl_value(symbol=symbol , entry_price= position["entry_price"] , close_price=position["tp"], type= "SELL")
+                        position["exit_price"] = position["tp"]
+                        position["pnl"] = profit
+                        position["status"] = "tp_hit"
+                        position["exit_time"] = datetime.fromtimestamp(historical_data["time"].iloc[i]).strftime("%Y-%m-%d %H-%M-%S")
+                        tp_hit += 1
+                        trades.append(position)
+                        after_trade += profit
+                        position = None
 
-    if logical_ops:
-        conditions_met = condition_results[0]
-        for j, logical_op in enumerate(logical_ops):
-            logical_operator = LogicalOperator(logical_op)
-            conditions_met = logical_operator.evaluate([conditions_met, condition_results[j+1]])
-    else:
-        conditions_met = condition_results[0]
-
-    if conditions_met:
-        print(conditions_met)
-        trades.append(('Buy', historical_data['last'].iloc[-1]))
-
+    print("SL hit count:", sl_hit, "TP hit count:", tp_hit)
+    print(initalamount)
+    print(after_trade)
     return trades
 
-def backtest(historical_data, strategy):
-    trades = evaluate_strategy(historical_data, strategy)
-    net_profit = 0
-    buy_price = None
+# Example Strategy
+strategy = {
+    "timeframe": "4h",
+    "orderDetails": {
+        "symbol": "EURUSDm",
+        "type": "SELL",
+        "stop_loss_pct": 1.0,
+        "take_profit_pct": 2.0
+    },
+    "entryRuleModel": [
+        #   {
+        #     "type": "indicator",
+        #     "name": "close",
+        #     "parameters": {"time period": 200}
+        # },
 
-    for trade in trades:
-        if trade[0] == 'Buy':
-            if buy_price is None:
-                buy_price = trade[1]
-        elif trade[0] == 'Sell':
-            if buy_price is not None:
-                net_profit += trade[1] - buy_price
-                buy_price = None
+            {
+            "type": "indicator",
+            "name": "SMA",
+            "parameters": {"time period": 50}
+        },
+       
+        {
+            "type": "condition",
+            "name": "isGreaterThan"
+        },
 
-    results = {
-        'Net Profit': net_profit,
-        'Number of Trades': len(trades),
-        'Win/Loss Ratio': net_profit / len(trades) if len(trades) > 0 else 0
-    }
+    
 
-    return results
+           {
+            "type": "indicator",
+            "name": "close",
+            "parameters": {"time period": 200}
+        },
+      
+        {
+            "type": "logicalOperator",
+            "name": "AND"
+        },
+        {
+            "type": "indicator",
+            "name": "MACD",
+            "parameters": {
+                "fast period": 12,
+                "slow period": 26,
+                "signal period": 9
+            }
+        }
+        #     {
+        #     "type": "logicalOperator",
+        #     "name": "AND"
+        # },
 
-def fetch_historical_data(symbol):
-    return pd.DataFrame([
-        {"last": 100}, {"last": 105}, {"last": 110}, {"last": 115},
-        {"last": 120}, {"last": 125}, {"last": 130}, {"last": 135},
-        {"last": 140}, {"last": 145}, {"last": 150}, {"last": 155},
-        {"last": 160}, {"last": 165}, {"last": 170}, {"last": 175},
-        {"last": 180}, {"last": 185}, {"last": 190}, {"last": 195},
-        {"last": 200}, {"last": 205}, {"last": 210}, {"last": 215},
-        {"last": 220}, {"last": 225}, {"last": 230}, {"last": 235},
-        {"last": 240}, {"last": 245}, {"last": 250}
-    ])
+        # {
+        #     "type": "indicator",
+        #     "name": "AND"
+        # },
 
-strategy = [
-    {"type": "indicator", "name": "SMA", "parameters": {"time period": 20}},
-    {"type": "condition", "name": "isGreaterThan"},
-    {"type": "indicator", "name": "SMA", "parameters": {"time period": 5}},
-    {"type": "logicalOperator", "name": "OR"},
-    {"type": "indicator", "name": "SMA", "parameters": {"time period": 25}},
-    {"type": "condition", "name": "isGreaterThan"},
-    {"type": "indicator", "name": "SMA", "parameters": {"time period": 10}},
-    {"type": "logicalOperator", "name": "AND"},
-    {"type": "indicator", "name": "SMA", "parameters": {"time period": 20}},
-    {"type": "condition", "name": "isLessThan"},
-    {"type": "indicator", "name": "SMA", "parameters": {"time period": 5}},
-    {"type": "action", "name": "Buy"}
-]
 
-historical_data = fetch_historical_data('symbol')
+    ]
+}
 
-results = backtest(historical_data, strategy)
-print("Backtest Results:", results)
+# Run backtest
+results = backtest_results(strategy=strategy)
+print("Backtest Results:", len(results))
+data = pd.DataFrame(results)
+print(data)
+
+
+# price = caculate_pip_value(symbol="USDJPYm" , entry_price= 158.209 , close_price= 157.600 , lotsize= 100)
+
+# print(price)

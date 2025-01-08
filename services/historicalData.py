@@ -48,6 +48,7 @@ def getHistoricaldata(symbol, totalnoperiod , timeframe):
     rates = mt5.copy_rates_from(symbol, time, utc_from, totalnoperiod)
  
     # # Check if rates are retrieved
+    # return rates
     if rates is not None and len(rates) > 0:
         return rates[:-1]
         # Create DataFrame out of the obtained data
