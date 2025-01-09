@@ -50,20 +50,23 @@ def getHistoricaldata(symbol, totalnoperiod , timeframe):
     # # Check if rates are retrieved
     # return rates
     if rates is not None and len(rates) > 0:
-        return rates[:-1]
+        # return rates[:-1]
         # Create DataFrame out of the obtained data
 
-    #     rates_frame = pd.DataFrame(rates)
-    #     # Convert time in seconds into the datetime format in UTC
-    #     rates_frame['time'] = pd.to_datetime(rates_frame['time'], unit='s', utc=True)
-    #     # Convert the time to IST
-    #     rates_frame['time'] = rates_frame['time'].dt.tz_convert('Asia/Kolkata')
+        rates_frame = pd.DataFrame(rates)
+        # Convert time in seconds into the datetime format in UTC
+        rates_frame['time'] = pd.to_datetime(rates_frame['time'], unit='s', utc=True)
+        # Convert the time to IST
+        rates_frame['time'] = rates_frame['time'].dt.tz_convert('Asia/Kolkata')
         
-    #     # Remove the last row
-    #     newdata = rates_frame[:-1]
-    #     return newdata  # Return the new DataFrame without the last row
-    # else:
-    #     print('No rates retrieved:', mt5.last_error())
+        # Remove the last row
+        # newdata = rates_frame[:-1]
+        # print(rates_frame)
+        data = rates_frame.iloc[:-1]
+        # print(data)
+        return data   # Return the new DataFrame without the last row
+    else:
+        print('No rates retrieved:', mt5.last_error())
 
     # # Shutdown MT5 connection
     # mt5.shutdown()
@@ -71,6 +74,5 @@ def getHistoricaldata(symbol, totalnoperiod , timeframe):
 # Usage example
 
 
-# data = getHistoricaldata("EURUSDm" ,100, "1m")
+# data = getHistoricaldata("EURUSDm" ,100, "4h")
 
-# print(data)

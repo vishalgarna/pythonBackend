@@ -9,19 +9,19 @@ from services.historicalData import getHistoricaldata
 
 # Sample closing prices
 #Convert to DataFrame
-def checkkCoressOverMacd(credentials):
+def checkkCoressOverMacd(credentials , historical_data):
     # print(data)
-    symbol = strategy["orderDetails"]["symbol"]
-    timeframe =  strategy["timeframe"]
-    type = strategy["orderDetails"]["type"]
-    data = getHistoricaldata(symbol=symbol, totalnoperiod=100, timeframe=timeframe)
+    # symbol = strategy["orderDetails"]["symbol"]
+    # timeframe =  strategy["timeframe"]
+    # type = strategy["orderDetails"]["type"]
+    # data = getHistoricaldata(symbol=symbol, totalnoperiod=100, timeframe=timeframe)
     
     # Calculate MACD using talib
-    if data is None or data.size == 0:
+    if historical_data is None or historical_data.size == 0:
         print('data is empty')
         return False
     
-    macd, signal, hist = tb.MACD(data['last'], fastperiod=12, slowperiod=26, signalperiod=9)
+    macd, signal, hist = tb.MACD(historical_data['last'], fastperiod=12, slowperiod=26, signalperiod=9)
     # Extract and print the latest MACD and Signal values
     newmacd = macd.iloc[-1]
     newsinal = signal.iloc[-1]
@@ -42,7 +42,7 @@ class LogicalOperator:
         self.name = name
 
     def evaluate(self, conditions):
-        print(f"Evaluating Logical Operator: {self.name} with Conditions: {conditions}")  # Debug print
+        # print(f"Evaluating Logical Operator: {self.name} with Conditions: {conditions}")  # Debug print
         if self.name == 'AND':
             return all(conditions)
         elif self.name == 'OR':
@@ -89,22 +89,31 @@ def calculate_macd(historical_data):
     return macd, macd_signal
 
 # Initialize indicators based on name
-def calculate_indicator(name, historical_data, parameters=None):
+
+# Initialize indicators based on name
+def calculate_indicator(name , historical_data ,  parameters=None):
+
+    # historical_data  = getHistoricaldata(symbol=credentials["symbol"] , totalnoperiod= 500 , timeframe=credentials["timeframe"] )
+    # historical_data = pd.DataFrame(pair_data)
+    newdata = historical_data[:-1]
+    historical_data 
     if name == 'SMA':
         return calculate_sma(historical_data, parameters['time period'])
     elif name == 'EMA':
         return calculate_ema(historical_data, parameters['time period'])
     elif name == 'RSI':
         return calculate_rsi(historical_data, parameters['time period'])
-    elif name == 'MACD':
-        return calculate_macd(historical_data)
+    elif name == 'close':
+        data  = historical_data["last"]
+        return data
     else:
-        raise ValueError(f"Unknown indicator: {name}")
+        return
+
 
 
 import pandas as pd  # Ensure Pandas is imported
 
-def evaluate_strategy(strategy):
+def evaluate_strategy(strategy , historical_data):
     symbol = strategy["orderDetails"]["symbol"]
     timeframe =  strategy["timeframe"]
     type = strategy["orderDetails"]["type"]
@@ -125,10 +134,10 @@ def evaluate_strategy(strategy):
         if component['type'] == 'indicator':
             indicator = component['name']
             if indicator == "MACD":
-                check = checkkCoressOverMacd(credentials=Credentials)
+                check = checkkCoressOverMacd(credentials=Credentials , historical_data = historical_data)
                 # print(check)
                 condition_results.append(check)
-            value = calculate_indicator(component['name'], Credentials, component['parameters'])
+            value = calculate_indicator(component['name'], historical_data, component['parameters'])
             indicator_key = f"{component['name']}_{component['parameters'].get('time period', '')}"
             if value is not None:
                 if isinstance(value, tuple):  # Handle multiple values (e.g., MACD)
@@ -137,7 +146,7 @@ def evaluate_strategy(strategy):
                 else:
                     indicator_values[indicator_key] = value.iloc[-1]
 
-    print(indicator_values)  # Debug print to see indicator values
+    # print(indicator_values)  # Debug print to see indicator values
 
     # Store conditions and logical operators
     i = 0

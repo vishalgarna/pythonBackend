@@ -1,13 +1,10 @@
 import os, sys
 import pandas as pd
-import talib
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from demo import evaluate_strategy
-from services.indicatorsFunction import checkkCoressOverMacd
+from backtest_function import evaluate_strategy
 from services.historicalData import getHistoricaldata
 from datetime import datetime
-from openpyxl import load_workbook
 
 
 def caculate_pnl_value (symbol , entry_price , close_price , type ):
@@ -38,10 +35,7 @@ def caculate_pnl_value (symbol , entry_price , close_price , type ):
         # print (secondprice)
      
         return round((secondprice * 0.1000) * 10000)
-
-
     
-
 
 def calculate_SL_TP(close_price, symbol, trade_type ):
     if "JPY" in symbol:
@@ -164,10 +158,18 @@ def backtest_results(strategy):
                         after_trade += profit
                         position = None
 
-    print("SL hit count:", sl_hit, "TP hit count:", tp_hit)
-    print(initalamount)
-    print(after_trade)
-    return trades
+    # print("SL hit count:", sl_hit, "TP hit count:", tp_hit)
+    # print(initalamount)
+    # print(after_trade)
+    data = {
+        "initalamount":initalamount,
+        "after_trade" : after_trade,
+        "sl_hit" : sl_hit,
+        "tp_hit": tp_hit,
+        "trades": trades
+
+    }
+    return data
 
 # Example Strategy
 strategy = {
