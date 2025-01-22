@@ -3,7 +3,7 @@ import SchedulingTasks as st
 from services.placeOrderServices import placedOrder
 import config.appconfig 
 from flask  import Flask , request , jsonify
-from backtest_results import backtest_results
+from services.evaluteImportant import EvaluteBacktestResult
 
 # st.start_scheduler()
 print('hello')
@@ -38,21 +38,23 @@ def placinReqeustOrder():
 @app.route("/backtest" , methods = ["POST"])
 def backtest_Function():
      strategy = request.get_json()
+     print(strategy)
+     # return jsonify({
+     #               "message": "success",    
+     #          })
+     
      try:
-
-         results = backtest_results(strategy= strategy)
+         results = EvaluteBacktestResult(strategy= strategy)
 
          if(results):
-              return jsonify({
+              return {
                    "message": "success",
                    "data" : results
-              })
+              }
 
-     finally:
+     except Exception as e:
 
-          return jsonify({"Server Error try after Sometime"}), 500
-
-
+          return jsonify({"Server Error try after Sometime" , e}), 500
 
 
 

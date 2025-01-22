@@ -1,6 +1,6 @@
 import MetaTrader5 as mt5
 
-def placedOrder(orderDetails):
+def placedOrder(orderDetails , symbol):
     print(orderDetails)
 
     mt5.initialize()
@@ -14,12 +14,7 @@ def placedOrder(orderDetails):
     # if not mt5.login(login=account, password=password, server=server):
     #  print('Ye Kya Kardiy credential Wrong de diya ', mt5.last_error())
     # quit()
-
-    if not mt5.symbol_select(orderDetails['symbol']):
-        print('le lo ladu aur dalo galat symbol ', orderDetails['symbol'])
-        return {"message": "Invalid symbol"}
-
-    symbol = orderDetails['symbol']
+    # symbol = orderDetails['symbol']
     symbol_info = mt5.symbol_info(symbol)
     if symbol_info is None:
         print(f"Symbol info not found for {symbol}")
