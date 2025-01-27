@@ -74,5 +74,7 @@ def getHistoricaldata(symbol, totalnoperiod , timeframe):
 # Usage example
 
 
-# data = getHistoricaldata("EURUSDm" ,100, "4h")
+data = getHistoricaldata("DXYm" ,1000, "1d")
+
+data.to_csv("data.csv")
 

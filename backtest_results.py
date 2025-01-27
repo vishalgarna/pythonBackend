@@ -222,23 +222,21 @@ def evaluate_trade(historical_data, strategy , symbol):
 #     # print(data)
 #     return data
 
-def backtest_results(strategy, symbol):
+def backtest_results(strategy, symbol ,investedAmount):
     trades = []
     position = None
     order_details = strategy["orderDetails"]
     timeframe = strategy["timeframe"]
     sl_hit = 0
     tp_hit = 0
-    initalamount = 30
-    after_trade = 30
+    after_trade = investedAmount
 
     historical_data = getHistoricaldata(symbol=symbol, timeframe=timeframe, totalnoperiod=10000)
     for i in range(len(historical_data)):
         data = historical_data.iloc[:i + 1]
         if(after_trade <=0):
              totaltrades = len(trades)
-             data = {
-                    "initialAmount": initalamount,
+             data = {  
                     "afterTrade": after_trade,
                     "slHit": sl_hit,
                     "tpHit": tp_hit,
@@ -309,7 +307,6 @@ def backtest_results(strategy, symbol):
 
     totaltrades = len(trades)
     data = {
-        "initialAmount": initalamount,
         "afterTrade": after_trade,
         "slHit": sl_hit,
         "tpHit": tp_hit,

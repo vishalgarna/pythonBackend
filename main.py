@@ -1,12 +1,13 @@
-
+import threading
 import SchedulingTasks as st
 from services.placeOrderServices import placedOrder
-import config.appconfig 
-from flask  import Flask , request , jsonify
-from services.evaluteImportant import EvaluteBacktestResult
 
-# st.start_scheduler()
-print('hello')
+import config.appconfig
+from flask import Flask, request, jsonify
+import logging
+from services.evaluteImportant import EvaluteBacktestResult
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__)
 
@@ -14,51 +15,49 @@ app = Flask(__name__)
 def home():
     return 'Kya haan Hai Lala'
 
-
-
-# orderPlaceFunction
-
 @app.route('/vishal', methods=['POST'])
-def placinReqeustOrder():
+def placeRequestOrder():
+    try:
         orderDetails = request.get_json()
-        try:
+        if placedOrder(orderDetails):
+            return jsonify({"message": "success"}), 200
+        else:
+            return jsonify({"error": "error during place order"}), 500
+    except Exception as e:
+        logging.error(f"Error in placeRequestOrder: {e}")
+        return jsonify({"error": "internal server error"}), 500
+    
 
-               if placedOrder(orderDetails):
-                    return jsonify({
-                         "message" : "success"
-                    }),200      
-               else : 
-                    return jsonify({"error during place order"}), 500
-        finally :
-         return jsonify({"error during place order"}), 500
-          
-
+ 
 
 # backtest Function 
-@app.route("/backtest" , methods = ["POST"])
+@app.route("/backtest", methods=["POST"])
 def backtest_Function():
-     strategy = request.get_json()
-     print(strategy)
-     # return jsonify({
-     #               "message": "success",    
-     #          })
-     
-     try:
-         results = EvaluteBacktestResult(strategy= strategy)
+    strategy = request.get_json()
+    print(strategy)
 
-         if(results):
-              return {
-                   "message": "success",
-                   "data" : results
-              }
+    results = EvaluteBacktestResult(strategy=strategy)
+    print(results)
 
-     except Exception as e:
+    if results:
+            # data = {
+            #     "message": "success",
+            #     "data": list(results["resultBacktesPairs"]),  # Convert set to list
+            #     "initialAmount": results["initialAmount"],
+            #     "pnl": results["pnl"],
+            # }
+            data  = {
+                "data": results
+            }
+            return data  # Use jsonify to ensure proper JSON response
+    else:
+        return "Heeljo gibe not " , 500
+  
 
-          return jsonify({"Server Error try after Sometime" , e}), 500
 
-
-
-
+     # Remove debug=True to avoid the signal issue
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5800, host="0.0.0.0")
+ app.run(port=5800, host="0.0.0.0") 
+#     # Run the scheduler in the main thread
+#     run_scheduler()

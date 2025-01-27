@@ -179,9 +179,6 @@
 #     result = evaluate_strategy(strategy)
 #     print(result)
 
-
-
-from services.historicalData import getHistoricaldata
 import pandas as pd
 import talib 
 import sys
