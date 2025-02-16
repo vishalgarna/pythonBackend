@@ -345,7 +345,7 @@
 
 
 import logging
-from historicalData import getHistoricaldata
+from  historicalData import getHistoricaldata
 import talib
 import numpy as np
 from notifications_serivces import send_notification
@@ -375,8 +375,8 @@ def checkkCoressOverMacd(Credentials):
         newmacd = macd.iloc[-1]
         newsinal = signal.iloc[-1]
 
-        # print(newmacd)
-        # print(newsinal)
+        print(newmacd)
+        print(newsinal)
 
         if type == "BUY":
             return newmacd > newsinal

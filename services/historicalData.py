@@ -2,22 +2,19 @@ from datetime import datetime
 import MetaTrader5 as mt5
 import pandas as pd
 import pytz
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from config import appconfig
+# from config import appconfig
 
-# mt5.initialize()
-# if not mt5.initialize():
-#  print('Beta Tumhare Mt5 Initialize nhai hua ', mt5.last_error())
+mt5.initialize()
+if not mt5.initialize():
+ print('Beta Tumhare Mt5 Initialize nhai hua ', mt5.last_error())
 
-# account = 182507753
-# password = "Vishalgarna@1"
-# server = "Exness-MT5Trial6"
+account = 126918041
+password = "Vishalgarna@1"
+server = "Exness-MT5Real7"
 
-# if not mt5.login(login=account, password=password, server=server):
-#  print('Ye Kya Kardiy credential Wrong de diya ', mt5.last_error())
-#  quit()
+if not mt5.login(login=account, password=password, server=server):
+ print('Ye Kya Kardiy credential Wrong de diya ', mt5.last_error())
+ quit()
 
 Alltimframes = {
     "1m" : mt5.TIMEFRAME_M1,
@@ -74,7 +71,5 @@ def getHistoricaldata(symbol, totalnoperiod , timeframe):
 # Usage example
 
 
-data = getHistoricaldata("DXYm" ,1000, "1d")
-
-data.to_csv("data.csv")
-
+# data = getHistoricaldata("EURUSDm", 1000, "1d")
+# print(data)

@@ -13,10 +13,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import datetime
 import time
-import sys
-import os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from config.dbconfig import MongoConnection
 from services.evaluteImportant import  EvaluteStrategy
 

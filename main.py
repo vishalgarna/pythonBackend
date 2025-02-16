@@ -1,11 +1,11 @@
 import threading
-import SchedulingTasks as st
-from services.placeOrderServices import placedOrder
 
-import config.appconfig
-from flask import Flask, request, jsonify
+# from services.placeOrderServices import placedOrder
+
+# import config.appconfig
+from flask import Flask, request, jsonify , abort
 import logging
-from services.evaluteImportant import EvaluteBacktestResult
+# from services.evaluteImportant import EvaluteBacktestResult
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -15,14 +15,18 @@ app = Flask(__name__)
 def home():
     return 'Kya haan Hai Lala'
 
-@app.route('/vishal', methods=['POST'])
+@app.route('/vishal', methods=['GET'])
 def placeRequestOrder():
     try:
-        orderDetails = request.get_json()
-        if placedOrder(orderDetails):
-            return jsonify({"message": "success"}), 200
-        else:
-            return jsonify({"error": "error during place order"}), 500
+        orderDetails = request.args.get("code")
+        print(orderDetails)
+
+        abort(400)
+    
+        # if placedOrder(orderDetails):
+        #     return jsonify({"message": "success"}), 200
+        # else:
+        #     return jsonify({"error": "error during place order"}), 500
     except Exception as e:
         logging.error(f"Error in placeRequestOrder: {e}")
         return jsonify({"error": "internal server error"}), 500
@@ -31,27 +35,27 @@ def placeRequestOrder():
  
 
 # backtest Function 
-@app.route("/backtest", methods=["POST"])
+@app.route("/backtest", methods=["GET"])
 def backtest_Function():
     strategy = request.get_json()
     print(strategy)
 
-    results = EvaluteBacktestResult(strategy=strategy)
-    print(results)
+    # results = EvaluteBacktestResult(strategy=strategy)
+    # print(results)
 
-    if results:
-            # data = {
-            #     "message": "success",
-            #     "data": list(results["resultBacktesPairs"]),  # Convert set to list
-            #     "initialAmount": results["initialAmount"],
-            #     "pnl": results["pnl"],
-            # }
-            data  = {
-                "data": results
-            }
-            return data  # Use jsonify to ensure proper JSON response
-    else:
-        return "Heeljo gibe not " , 500
+    # if results:
+    #         # data = {
+    #         #     "message": "success",
+    #         #     "data": list(results["resultBacktesPairs"]),  # Convert set to list
+    #         #     "initialAmount": results["initialAmount"],
+    #         #     "pnl": results["pnl"],
+    #         # }
+    #         data  = {
+    #             "data": results
+    #         }
+    #         return data  # Use jsonify to ensure proper JSON response
+    # else:
+        # return "Heeljo gibe not " , 500
   
 
 
